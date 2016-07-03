@@ -9,21 +9,21 @@ var rename = require('gulp-rename');
 var plumber = require('gulp-plumber');
 var size = require('gulp-size');
 var notify = require("gulp-notify")
+var sourcemaps = require('gulp-sourcemaps');
 
 // CSS Plugins
 var cleanCSS = require('gulp-clean-css');
 var sass = require('gulp-sass');
-var sourcemaps = require('gulp-sourcemaps');
 var autoprefixer = require('gulp-autoprefixer');
 var nanocss = require('gulp-cssnano');
 var mmq = require('gulp-merge-media-queries');
 
 // JS Plugins
+var watchify = require('watchify');
+var browserify = require('browserify');
+var babelify = require('babelify');
 var source = require('vinyl-source-stream');
 var buffer = require('vinyl-buffer');
-var browserify = require('browserify');
-var watchify = require('watchify');
-var babelify = require('babelify');
 var gutil = require('gulp-util');
 
 // Image Plugins
@@ -48,8 +48,11 @@ function handleError(error) {
   if (message !== undefined) { console.log('Error: ' + message); }
 }
 
+/*
+ * Clean
+ */
 gulp.task('clean', function() {
-  return del(['build']);
+  return del(['dev', 'build']);
 });
 
 /*
@@ -70,15 +73,18 @@ gulp.task('css', function() {
             cascade: false
         }))
     .pipe(sourcemaps.write())
-    .pipe(gulp.dest(paths.dev + 'css/'))
-    .pipe(notify({message: 'CSS compiled', onLast: true}))
+    .pipe(gulp.dest(paths.devAssets + 'css/'))
+    .pipe(notify({message: 'CSS compiled!', onLast: true}))
 });
 
 /*
  * JS
  */
-function compile(watch) {
-  var bundler = watchify(browserify(path.srcAssetes + 'js/main.js', {
+
+ // the compileJS() does the actual JS compilation
+function compileJS(watch) {
+
+  var bundler = watchify(browserify(paths.srcAssets + 'js/main.js', {
     debug: true,
     extensions: ['js']
   }).transform(babelify.configure({
@@ -96,10 +102,11 @@ function compile(watch) {
       .pipe(buffer())
       .pipe(sourcemaps.init({ loadMaps: true }))
       .pipe(sourcemaps.write('./'))
-      .pipe(gulp.dest(path.devAssets + 'js'))
-      .pipe(notify({message: 'JS compiled', onLast: true}))
+      .pipe(gulp.dest(paths.devAssets + 'js'))
+      .pipe(notify({message: 'JS compiled!', onLast: true}))
   }
 
+  // if the watch parameter is passed a true argument, then activate watching
   if (watch) {
     bundler.on('update', function() {
       console.log('-> bundling...');
@@ -110,14 +117,14 @@ function compile(watch) {
   rebundle();
 }
 
-
+// watchJS() will pass the true arg to compileJS() to activate watch
 function watchJS() {
-  return compile(true);
+  return compileJS(true);
 };
 
-
+// The JS task calls the compileJS funciton
 gulp.task('js', function() {
-  return compile();
+  return compileJS();
 });
 
 
@@ -127,7 +134,7 @@ gulp.task('js', function() {
  */
 gulp.task('img', function() {
   gulp.src(paths.srcAssets + 'img/**/*')
-    .pipe(gulp.dest(paths.buildAssets + 'img/'))
+    .pipe(gulp.dest(paths.devAssets + 'img/'))
     .pipe(notify({message: 'Images compiled!', onLast: true}))
 });
 
